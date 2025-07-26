@@ -1,0 +1,396 @@
+--// Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local SoundService = game:GetService("SoundService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// Som de clique
+local ClickSound = Instance.new("Sound")
+ClickSound.SoundId = "rbxassetid://9118823106"
+ClickSound.Volume = 1
+ClickSound.Name = "ClickSound"
+ClickSound.Parent = SoundService
+
+--// Variáveis principais
+local isMinimized = false
+local currentTheme = "Black"
+local AimbotEnabled = false
+local ESPEnabled = false
+local WallCheckEnabled = false
+local TeamCheckEnabled = false
+local FOV = 100
+
+local themes = {
+    Black = {
+        Background = Color3.fromRGB(20, 20, 20),
+        Text = Color3.new(1, 1, 1),
+        Button = Color3.fromRGB(50, 50, 50)
+    },
+    White = {
+        Background = Color3.fromRGB(240, 240, 240),
+        Text = Color3.new(0, 0, 0),
+        Button = Color3.fromRGB(200, 200, 200)
+    },
+    Blue = {
+        Background = Color3.fromRGB(10, 10, 60),
+        Text = Color3.fromRGB(200, 220, 255),
+        Button = Color3.fromRGB(30, 30, 100)
+    },
+}
+
+--// GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "BazHub"
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+--// Frame principal
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 330)
+frame.Position = UDim2.new(0.5, -130, 0.5, -165)
+frame.BackgroundColor3 = themes[currentTheme].Background
+frame.BorderSizePixel = 0
+frame.Parent = gui
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 10)
+
+--// Título
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -110, 0, 30)
+title.Position = UDim2.new(0, 10, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "BazHub - Universal"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.TextColor3 = themes[currentTheme].Text
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+--// Botões topo
+local themeButton = Instance.new("TextButton", frame)
+themeButton.Size = UDim2.new(0, 30, 0, 30)
+themeButton.Position = UDim2.new(1, -110, 0, 5)
+themeButton.Text = "🎨"
+themeButton.Font = Enum.Font.GothamBold
+themeButton.TextSize = 20
+themeButton.BackgroundTransparency = 1
+themeButton.TextColor3 = themes[currentTheme].Text
+
+local minimizeButton = Instance.new("TextButton", frame)
+minimizeButton.Size = UDim2.new(0, 30, 0, 30)
+minimizeButton.Position = UDim2.new(1, -70, 0, 5)
+minimizeButton.Text = "-"
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 24
+minimizeButton.BackgroundTransparency = 1
+minimizeButton.TextColor3 = themes[currentTheme].Text
+
+local closeButton = Instance.new("TextButton", frame)
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -35, 0, 5)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 24
+closeButton.BackgroundTransparency = 1
+closeButton.TextColor3 = Color3.new(1, 0, 0)
+
+local restoreButton = Instance.new("TextButton", gui)
+restoreButton.Size = UDim2.new(0, 30, 0, 30)
+restoreButton.Position = UDim2.new(0.5, 0, 0, 10)
+restoreButton.AnchorPoint = Vector2.new(0.5, 0)
+restoreButton.Text = "🐧"
+restoreButton.Font = Enum.Font.GothamBold
+restoreButton.TextSize = 24
+restoreButton.TextColor3 = themes[currentTheme].Text
+restoreButton.Visible = false
+
+--// Função criar botões centrais
+local buttons = {}
+
+local function createButton(text, posY)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0, 200, 0, 30)
+    btn.Position = UDim2.new(0.5, -100, 0, posY)
+    btn.BackgroundColor3 = themes[currentTheme].Button
+    btn.TextColor3 = themes[currentTheme].Text
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Text = text
+    local c = Instance.new("UICorner", btn)
+    c.CornerRadius = UDim.new(0, 8)
+    table.insert(buttons, btn)
+    return btn
+end
+
+local toggleAimbot = createButton("Aimbot: OFF", 50)
+local toggleESP = createButton("ESP: OFF", 90)
+local toggleWallCheck = createButton("WallCheck: OFF", 130)
+local toggleTeamCheck = createButton("TeamCheck: OFF", 170)
+local incFOV = createButton("Aumentar FOV", 210)
+local decFOV = createButton("Diminuir FOV", 250)
+
+--// Label FOV
+local fovLabel = Instance.new("TextLabel", frame)
+fovLabel.Size = UDim2.new(0, 200, 0, 30)
+fovLabel.Position = UDim2.new(0.5, -100, 0, 290)
+fovLabel.BackgroundTransparency = 1
+fovLabel.Font = Enum.Font.GothamBold
+fovLabel.TextSize = 14
+fovLabel.TextColor3 = themes[currentTheme].Text
+fovLabel.Text = "FOV: " .. FOV
+
+--// Função aplicar tema
+local function applyTheme(name)
+    local t = themes[name]
+    frame.BackgroundColor3 = t.Background
+    title.TextColor3 = t.Text
+    themeButton.TextColor3 = t.Text
+    minimizeButton.TextColor3 = t.Text
+    restoreButton.TextColor3 = t.Text
+    for _, btn in ipairs(buttons) do
+        btn.BackgroundColor3 = t.Button
+        btn.TextColor3 = t.Text
+    end
+    fovLabel.TextColor3 = t.Text
+end
+
+--// Função verificar visibilidade (WallCheck)
+local function isVisible(part)
+    local origin = Camera.CFrame.Position
+    local direction = (part.Position - origin)
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {LocalPlayer.Character}
+    local result = workspace:Raycast(origin, direction, params)
+    return (not result) or result.Instance:IsDescendantOf(part.Parent)
+end
+
+--// ESP Cache
+local espCache = {}
+
+local function createESPForPlayer(player)
+    if espCache[player] then return end
+
+    if player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "BazESP"
+        highlight.Adornee = player.Character
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.Enabled = ESPEnabled
+        highlight.Parent = player.Character
+
+        local nameLabel = Instance.new("TextLabel", gui)
+        local distanceLabel = Instance.new("TextLabel", gui)
+        local healthLabel = Instance.new("TextLabel", gui)
+
+        for _, lbl in pairs({nameLabel, distanceLabel, healthLabel}) do
+            lbl.BackgroundTransparency = 1
+            lbl.Font = Enum.Font.SourceSansBold
+            lbl.TextColor3 = themes[currentTheme].Text
+            lbl.TextSize = 14
+            lbl.ZIndex = 10
+            lbl.Visible = ESPEnabled
+        end
+
+        espCache[player] = {
+            Name = nameLabel,
+            Distance = distanceLabel,
+            Health = healthLabel,
+            Highlight = highlight,
+        }
+    end
+end
+
+local function updateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            if not espCache[player] then
+                createESPForPlayer(player)
+            end
+
+            local data = espCache[player]
+            if data and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") then
+                local head = player.Character.Head
+                local humanoid = player.Character.Humanoid
+                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+
+                if ESPEnabled and onScreen then
+                    local distance = math.floor((head.Position - Camera.CFrame.Position).Magnitude)
+                    local health = math.floor(humanoid.Health)
+                    local visible = isVisible(head)
+
+                    data.Name.Text = player.Name
+                    data.Name.Position = UDim2.new(0, pos.X, 0, pos.Y - 20)
+                    data.Name.Visible = true
+
+                    data.Distance.Text = "Distância: " .. distance
+                    data.Distance.Position = UDim2.new(0, pos.X, 0, pos.Y)
+                    data.Distance.Visible = true
+
+                    data.Health.Text = "Vida: " .. health
+                    data.Health.Position = UDim2.new(0, pos.X, 0, pos.Y + 20)
+                    data.Health.Visible = true
+
+                    data.Highlight.Enabled = true
+                    if visible then
+                        data.Highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                        data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    else
+                        data.Highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                        data.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    end
+                else
+                    data.Name.Visible = false
+                    data.Distance.Visible = false
+                    data.Health.Visible = false
+                    data.Highlight.Enabled = ESPEnabled
+                end
+            end
+        end
+    end
+end
+
+--// Função para achar o player mais próximo dentro do FOV respeitando WallCheck e TeamCheck
+local function getClosestPlayer()
+    if not AimbotEnabled then return nil end
+    local closestPlayer = nil
+    local shortestDistance = FOV
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and player.Character:FindFirstChild("Humanoid") then
+            local head = player.Character.Head
+
+            if TeamCheckEnabled and player.Team == LocalPlayer.Team then
+                continue
+            end
+
+            if WallCheckEnabled and not isVisible(head) then
+                continue
+            end
+
+            local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local dist = (Vector2.new(screenPos.X, screenPos.Y) - Camera.ViewportSize/2).Magnitude
+                if dist < shortestDistance then
+                    shortestDistance = dist
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+--// Eventos botões
+themeButton.MouseButton1Click:Connect(function()
+    if currentTheme == "Black" then
+        currentTheme = "White"
+    elseif currentTheme == "White" then
+        currentTheme = "Blue"
+    else
+        currentTheme = "Black"
+    end
+    applyTheme(currentTheme)
+end)
+
+toggleAimbot.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    toggleAimbot.Text = "Aimbot: " .. (AimbotEnabled and "ON" or "OFF")
+end)
+
+toggleESP.MouseButton1Click:Connect(function()
+    ESPEnabled = not ESPEnabled
+    toggleESP.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
+end)
+
+toggleWallCheck.MouseButton1Click:Connect(function()
+    WallCheckEnabled = not WallCheckEnabled
+    toggleWallCheck.Text = "WallCheck: " .. (WallCheckEnabled and "ON" or "OFF")
+end)
+
+toggleTeamCheck.MouseButton1Click:Connect(function()
+    TeamCheckEnabled = not TeamCheckEnabled
+    toggleTeamCheck.Text = "TeamCheck: " .. (TeamCheckEnabled and "ON" or "OFF")
+end)
+
+incFOV.MouseButton1Click:Connect(function()
+    FOV = FOV + 10
+    fovLabel.Text = "FOV: " .. FOV
+end)
+
+decFOV.MouseButton1Click:Connect(function()
+    FOV = math.max(25, FOV - 10)
+    fovLabel.Text = "FOV: " .. FOV
+end)
+
+minimizeButton.MouseButton1Click:Connect(function()
+    if isMinimized then return end
+    isMinimized = true
+    frame.Visible = false
+    restoreButton.Visible = true
+end)
+
+restoreButton.MouseButton1Click:Connect(function()
+    if not isMinimized then return end
+    isMinimized = false
+    frame.Visible = true
+    restoreButton.Visible = false
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+--// Garantir ESP para jogadores novos e remover ao sair
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        task.wait(1)
+        createESPForPlayer(player)
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if espCache[player] then
+        for _, item in pairs(espCache[player]) do
+            if typeof(item) == "Instance" then
+                item:Destroy()
+            end
+        end
+        espCache[player] = nil
+    end
+end)
+
+--// Círculo do FOV com Drawing
+local fovCircle = Drawing.new("Circle")
+fovCircle.Color = Color3.new(1,1,1)
+fovCircle.Thickness = 1
+fovCircle.NumSides = 64
+fovCircle.Filled = false
+fovCircle.Visible = false
+
+--// Loop principal RenderStepped
+RunService.RenderStepped:Connect(function()
+    -- Atualiza círculo FOV no centro da tela só se aimbot ligado e hub aberto
+    fovCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+    fovCircle.Radius = FOV
+    fovCircle.Visible = AimbotEnabled and gui.Parent ~= nil
+
+    -- Atualizar ESP
+    updateESP()
+
+    -- Aimbot
+    if AimbotEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+        end
+    end
+end)
