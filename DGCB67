@@ -1,0 +1,186 @@
+--// Serviços
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local StarterGui = game:GetService("StarterGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+--// Variáveis
+local isMinimized = false
+local autoFarm = false
+local currentTheme = "Black"
+
+local themes = {
+    Black = {
+        Background = Color3.fromRGB(25, 25, 25),
+        Text = Color3.new(1, 1, 1),
+    },
+    White = {
+        Background = Color3.fromRGB(235, 235, 235),
+        Text = Color3.new(0, 0, 0),
+    },
+    Blue = {
+        Background = Color3.fromRGB(15, 15, 70),
+        Text = Color3.fromRGB(210, 230, 255),
+    },
+}
+
+--// GUI Principal
+local gui = Instance.new("ScreenGui")
+gui.Name = "BazHub"
+gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.ResetOnSpawn = false -- 🔥 evita sumir ao morrer
+
+--// Janela
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 240, 0, 200)
+frame.Position = UDim2.new(0.5, -120, 0.5, -100)
+frame.BackgroundColor3 = themes[currentTheme].Background
+frame.BorderSizePixel = 0
+frame.Parent = gui
+frame.Active = true
+frame.Draggable = true
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+--// Título
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, -90, 0, 28)
+title.Position = UDim2.new(0, 10, 0, 4)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Text = "BazHub"
+title.TextColor3 = themes[currentTheme].Text
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+--// Botão de Tema
+local themeButton = Instance.new("TextButton", frame)
+themeButton.Size = UDim2.new(0, 26, 0, 26)
+themeButton.Position = UDim2.new(1, -80, 0, 4)
+themeButton.Text = "🎨"
+themeButton.Font = Enum.Font.GothamBold
+themeButton.TextSize = 20
+themeButton.BackgroundTransparency = 1
+themeButton.TextColor3 = themes[currentTheme].Text
+
+--// Botão Minimizar
+local minimizeButton = Instance.new("TextButton", frame)
+minimizeButton.Size = UDim2.new(0, 26, 0, 26)
+minimizeButton.Position = UDim2.new(1, -50, 0, 4)
+minimizeButton.Text = "-"
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextSize = 22
+minimizeButton.BackgroundTransparency = 1
+minimizeButton.TextColor3 = themes[currentTheme].Text
+
+--// Botão Fechar
+local closeButton = Instance.new("TextButton", frame)
+closeButton.Size = UDim2.new(0, 26, 0, 26)
+closeButton.Position = UDim2.new(1, -25, 0, 4)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 20
+closeButton.BackgroundTransparency = 1
+closeButton.TextColor3 = Color3.new(1, 0, 0)
+
+--// Botão Restaurar (sempre na tela)
+local restoreButton = Instance.new("TextButton", gui)
+restoreButton.Size = UDim2.new(0, 35, 0, 35)
+restoreButton.Position = UDim2.new(0.5, -17, 0, 10)
+restoreButton.Text = "🔼"
+restoreButton.Font = Enum.Font.GothamBold
+restoreButton.TextSize = 22
+restoreButton.BackgroundColor3 = themes[currentTheme].Background
+restoreButton.TextColor3 = themes[currentTheme].Text
+restoreButton.BorderSizePixel = 0
+restoreButton.Visible = false
+Instance.new("UICorner", restoreButton).CornerRadius = UDim.new(0, 8)
+
+--// Botão Auto Farm
+local autoFarmBtn = Instance.new("TextButton", frame)
+autoFarmBtn.Size = UDim2.new(1, -20, 0, 40)
+autoFarmBtn.Position = UDim2.new(0, 10, 0, 50)
+autoFarmBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+autoFarmBtn.Text = "Auto Farm: OFF"
+autoFarmBtn.Font = Enum.Font.GothamBold
+autoFarmBtn.TextSize = 18
+autoFarmBtn.TextColor3 = Color3.new(1, 0, 0)
+Instance.new("UICorner", autoFarmBtn).CornerRadius = UDim.new(0, 8)
+
+--// Função aplicar tema
+local function applyTheme(t)
+    local th = themes[t]
+    frame.BackgroundColor3 = th.Background
+    title.TextColor3 = th.Text
+    minimizeButton.TextColor3 = th.Text
+    themeButton.TextColor3 = th.Text
+    restoreButton.BackgroundColor3 = th.Background
+    restoreButton.TextColor3 = th.Text
+end
+
+themeButton.MouseButton1Click:Connect(function()
+    if currentTheme == "Black" then
+        currentTheme = "White"
+    elseif currentTheme == "White" then
+        currentTheme = "Blue"
+    else
+        currentTheme = "Black"
+    end
+    applyTheme(currentTheme)
+end)
+
+--// Minimizar
+minimizeButton.MouseButton1Click:Connect(function()
+    frame.Visible = false
+    restoreButton.Visible = true
+end)
+
+--// Restaurar
+restoreButton.MouseButton1Click:Connect(function()
+    frame.Visible = true
+    restoreButton.Visible = false
+end)
+
+--// Fechar
+closeButton.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+--// Auto Farm Loop
+task.spawn(function()
+    while true do
+        if autoFarm and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-1887, -58, 296)
+        end
+        task.wait(3) -- tempo entre TP 🔥
+    end
+end)
+
+--// Alternar Auto Farm
+autoFarmBtn.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+
+    if autoFarm then
+        autoFarmBtn.Text = "Auto Farm: ON"
+        autoFarmBtn.TextColor3 = Color3.new(0, 1, 0)
+
+        StarterGui:SetCore("SendNotification", {
+            Title = "BazHub",
+            Text = "Fique AFK, Auto Farm ligado",
+            Duration = 3
+        })
+    else
+        autoFarmBtn.Text = "Auto Farm: OFF"
+        autoFarmBtn.TextColor3 = Color3.new(1, 0, 0)
+    end
+end)
+
+--// Notificação inicial
+StarterGui:SetCore("SendNotification", {
+    Title = "BazHub",
+    Text = "Bem-vindo ao BazHub!",
+    Duration = 3
+})
